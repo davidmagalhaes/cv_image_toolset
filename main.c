@@ -121,11 +121,11 @@ int menu_loadimage(char *filename, char* bkpfilename){
 
 void menu_showimage(char *filename){
 	if(strcmp(filename, "")){
-		printf("ERRO: nenhum arquivo carregado!\n");
-	}
-	else{
 		CvMat *img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
 		cvShowImage( "mainWin", img ); 	
+	}
+	else{
+		printf("ERRO: nenhum arquivo carregado!\n");
 	}
 }
 
