@@ -123,6 +123,7 @@ void menu_showimage(char *filename){
 	if(strcmp(filename, "")){
 		CvMat *img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
 		cvShowImage( "mainWin", img ); 	
+		cvWaitKey(100);
 	}
 	else{
 		printf("ERRO: nenhum arquivo carregado!\n");
