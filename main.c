@@ -587,8 +587,6 @@ void equalize_htgr(unsigned int *histogram, unsigned char *matrix, int matrix_si
 		// cvShowImage( "mainWin", &cvMat(matrix_size_y, matrix_size_x, CV_8UC1, matrix) ); 
 		// cvWaitKey(20);
 	}
-		
-
 }
 
 void limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int matrix_size_x, int matrix_size_y){
