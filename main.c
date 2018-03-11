@@ -25,7 +25,7 @@ void menu_limiarize(char *filename);
 
 //Business Functions
 unsigned char *convolution(const unsigned char *matrix, double **mask, int matrix_size_x, int matrix_size_y, int mask_size_x, int mask_size_y);
-unsigned char *normalize(unsigned int *data, int data_size);
+unsigned char *normalize(const unsigned int *data, int data_size);
 unsigned int *histogram(const unsigned char *matrix, int matrix_size_x, int matrix_size_y);
 void equalize_htgr(unsigned int *histogram, unsigned char *matrix, int matrix_size_x, int matrix_size_y);
 void limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int matrix_size_x, int matrix_size_y);
@@ -181,53 +181,6 @@ void menu_conv(char *filename){
 
 		_conv(filename, img, mask, mask_size_x, mask_size_y);
 
-			// convolutedData = convolution(img->data.ptr, mask, img->width, img->height, mask_size_x, mask_size_y);
-
-			// printf("Convolution Complete!\n");
-
-			// CvMat resimg = cvMat(input_size_y, input_size_x, CV_8UC1, convolutedData);
-
-			// printf("A imagem ficará assim\n");
-
-			// cvShowImage( "mainWin", &resimg); 
-			// cvWaitKey(100);
-
-			// printf("Deseja salvá-la? (s/n)\n");
-			// scanf("%s", ynanswer);
-
-			// if(ynanswer[0] == 's' || ynanswer[0] == 'S'){
-			// 	cvSaveImage("out.jpg", &resimg);
-			// 	strcpy(filename, "out.jpg");
-
-			// 	printf("Aplicar novamente? (s/n)\n");
-			// 	scanf("%s", ynanswer);
-
-			// 	if(ynanswer[0] == 's' || ynanswer[0] == 'S'){
-			// 		cvReleaseMat(&img);
-			// 		img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
-			// 	}
-			// }
-			// else{
-			// 	printf("Abortando...\n");
-
-			// 	CvMat* bkp = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
-
-			// 	cvShowImage( "mainWin", bkp); 
-			// 	cvWaitKey(100);
-
-			// 	cvReleaseMat(&bkp);
-			// }
-
-		// fflush(stdin);
-		// fflush(stdout);
-		// printf("Deseja carregar a imagem recem produzida? (s/n)\n");
-		// scanf("%s", recursionResp);
-
-		// if(recursionResp[0] == 's' || recursionResp[0] == 'S'){
-		// 	strcpy(filename, "out.jpg");
-		// }
-
-		//free(convolutedData);
 		cvReleaseMat(&img);
 		free2dArr((void**)mask, mask_size_x);
 	}
@@ -251,7 +204,7 @@ void menu_histogram(char *filename){
 			printf("%d: %d \n", it, histogr[it]);
 		}
 
-		//showImg("histogramWin", img);
+		show_histogram(histogr);
 
 		free(histogr);
 		cvReleaseMat(&img);
@@ -493,15 +446,25 @@ void showImg(const char* id, CvMat *img){
 }
 
 void show_histogram(unsigned int *histogram){
+	unsigned char *histogr;
+	int i;
+	CvScalar blackcolo;
+	CvScalar whitecolo;
 
-	//Converter histograma para imagem aqui
+	histogr = normalize(histogram, 256);
 
+	CvMat *mat = cvCreateMat(256, 256, CV_8UC1);
 
+	blackcolo.val[0] = blackcolo.val[1] = blackcolo.val[2] = blackcolo.val[3] = 0;
+	whitecolo.val[0] = whitecolo.val[1] = whitecolo.val[2] = whitecolo.val[3] = 255;
 
-	//namedWindow( "Display window", WINDOW_AUTOSIZE );// Create a window for display.
-    //imshow( "Display window", image );                   // Show our image inside it.
+	cvRectangle(mat, cvPoint(0, 0), cvPoint(256, 256), whitecolo, CV_FILLED, 8, 0);
 
-    //waitKey(0);     
+	for(i = 0; i < 256; i++)
+		cvLine(mat, cvPoint(i, 255-histogr[i]), cvPoint(i, 255), blackcolo, 1, 8, 0);
+
+	cvShowImage( "mainWin", mat); 
+	cvWaitKey(100);
 }
 
 //Faz a convolução de mask em matrix
@@ -547,7 +510,7 @@ unsigned char *convolution(const unsigned char *matrix, double **mask, int matri
 }
 
 //Transforma uma faixa de valores em outra (no caso, transforma os valores no vetor data em valores entre 0 e 255)
-unsigned char *normalize(unsigned int *data, int data_size){
+unsigned char *normalize(const unsigned int *data, int data_size){
 	unsigned char *result = (unsigned char*) malloc(data_size*sizeof(unsigned char));
 	unsigned int highestValue = 0;
 	unsigned int lowestValue = pow(2, 32) - 1;
