@@ -18,6 +18,8 @@ void free2dArr(void **arr, int size);
 void showImg(const char*, CvMat*);
 
 //Menus
+int  menu_loadimage(char *filename, char* bkpfilename);
+void menu_showimage(char *filename);
 void menu_conv(char *filename);
 void menu_histogram(char *filename);
 void menu_equalize(char *filename);
@@ -40,7 +42,6 @@ void show_histogram(unsigned int *histogram);
 //Input Functions
 int main(int argsize, char **args){
 	int acao;
-	FILE *loadedFile = NULL;
 	char *filename = (char*) malloc(150);
 	int it, jt;
 	char *bkpfilename = (char*) malloc(150);
@@ -60,10 +61,11 @@ int main(int argsize, char **args){
 		printf("\t\tEscolha uma ação: \n");
 		printf("\t\t0 - Carregar imagem LENNA.JPG\n");
 		printf("\t\t1 - Carregar uma imagem\n");
-		printf("\t\t2 - Convolução\n");
+		printf("\t\t2 - Exibir Imagem\n");
 		printf("\t\t3 - Exibir Histograma\n");
-		printf("\t\t4 - Equalizar\n");
-		printf("\t\t5 - Limiarizar\n");
+		printf("\t\t4 - Convolução\n");
+		printf("\t\t5 - Equalização\n");
+		printf("\t\t6 - Limiariarização\n");
 		printf("\t\t9 - Sair\n");
 
 		printf("Opção: ");
@@ -79,41 +81,53 @@ int main(int argsize, char **args){
 				cvShowImage( "mainWin", img ); 
 				cvWaitKey(100);
 			break;
-				
-			case 1 :  
-				loadedFile = ask_inputfile(&filename);
 
-				strcpy(filename, "LENNA.JPG");
-
-				if(loadedFile == NULL){
-					printf("Não foi possível carregar o arquivo %s", filename);
-					strcpy(filename, bkpfilename);
-				}
-				else{
-					strcpy(bkpfilename, filename);
-					img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
-
-					cvShowImage( "mainWin", img ); 
-					cvWaitKey(100);
-				}
-			break;
-
-			case 2 : menu_conv(filename); 		break;
-			case 3 : menu_histogram(filename); 	break;
-			case 4 : menu_equalize(filename) ; 	break;
-			case 5 : menu_limiarize(filename); 	break;
+			case 1 : menu_loadimage(filename, bkpfilename); break;
+			case 2 : menu_showimage(filename);  			break;
+			case 3 : menu_histogram(filename);  			break;
+			case 4 : menu_conv(filename); 					break;
+			case 5 : menu_equalize(filename) ; 				break;
+			case 6 : menu_limiarize(filename); 				break;
 		}
 	}
 
-	if(loadedFile != NULL){
-		fclose(loadedFile);
-	}
-
 	free(filename);
+	free(bkpfilename);
 
 	return 0;
 } 
 
+int menu_loadimage(char *filename, char* bkpfilename){
+	FILE *loadedFile = ask_inputfile(&filename);
+	int result = loadedFile != NULL;
+
+	free(loadedFile);
+	//strcpy(filename, "LENNA.JPG");
+
+	if(result){
+		strcpy(bkpfilename, filename);
+		CvMat *img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
+
+		cvShowImage( "mainWin", img ); 
+		cvWaitKey(100);
+	}
+	else{
+		printf("Não foi possível carregar o arquivo %s", filename);
+		strcpy(filename, bkpfilename);
+	}
+
+	return result;
+}
+
+void menu_showimage(char *filename){
+	if(strcmp(filename, "")){
+		printf("ERRO: nenhum arquivo carregado!\n");
+	}
+	else{
+		CvMat *img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
+		cvShowImage( "mainWin", img ); 	
+	}
+}
 
 void _conv(char *filename, CvMat* img, double **mask, int mask_size_x, int mask_size_y){
 	char ynanswer[1];
