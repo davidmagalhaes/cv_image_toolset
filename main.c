@@ -153,8 +153,6 @@ void _conv(char *filename, CvMat* img, double **mask, int mask_size_x, int mask_
 	scanf("%s", ynanswer);
 
 	if(ynanswer[0] == 's' || ynanswer[0] == 'S'){
-		img = &resimg;
-
 		_conv(filename, &resimg, mask, mask_size_x, mask_size_y);
 	}
 	else{
