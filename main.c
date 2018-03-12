@@ -16,9 +16,11 @@ unsigned long file_size(FILE*);
 void **create2dArr(int, int, size_t);
 void free2dArr(void **arr, int size);
 void showImg(const char*, CvMat*);
+int min(int a, int b);
 
 //Menus
-int  menu_loadimage(char *filename, char* bkpfilename);
+int  menu_loadimage(char **filename, char** bkpfilename); 
+void menu_opimg(char *filename, unsigned char *memoryMatrix, int matrix_size_x, int matrix_size_y);
 void menu_showimage(char *filename);
 void menu_conv(char *filename);
 void menu_histogram(char *filename);
@@ -32,7 +34,8 @@ unsigned int *histogram(const unsigned char *matrix, int matrix_size_x, int matr
 void equalize_htgr(unsigned int *histogram, unsigned char *matrix, int matrix_size_x, int matrix_size_y);
 void limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int matrix_size_x, int matrix_size_y);
 void show_histogram(unsigned int *histogram);
-
+unsigned char *sum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2);
+unsigned char *radquadsum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2);
 
 //TODO
 //Imagem do histograma: implementar função show_histogram
@@ -45,7 +48,9 @@ int main(int argsize, char **args){
 	char *filename = (char*) malloc(150);
 	int it, jt;
 	char *bkpfilename = (char*) malloc(150);
-	CvMat* img;
+	CvMat *img = NULL;
+	CvMat *memoryImg = NULL;
+	int memoryImg_width = 0, memoryImg_height = 0;
 
 	strcpy(filename, "");
 	strcpy(bkpfilename, "");
@@ -61,11 +66,13 @@ int main(int argsize, char **args){
 		printf("\t\tEscolha uma ação: \n");
 		printf("\t\t0 - Carregar imagem LENNA.JPG\n");
 		printf("\t\t1 - Carregar uma imagem\n");
-		printf("\t\t2 - Exibir Imagem\n");
-		printf("\t\t3 - Exibir Histograma\n");
-		printf("\t\t4 - Convolução\n");
-		printf("\t\t5 - Equalização\n");
-		printf("\t\t6 - Limiariarização\n");
+		printf("\t\t2 - Guardar imagem em memória\n");
+		printf("\t\t3 - Operar com imagem em memória\n");
+		printf("\t\t4 - Exibir Imagem\n");
+		printf("\t\t5 - Exibir Histograma\n");
+		printf("\t\t6 - Convolução\n");
+		printf("\t\t7 - Equalização\n");
+		printf("\t\t8 - Limiariarização\n");
 		printf("\t\t9 - Sair\n");
 
 		printf("Opção: ");
@@ -76,18 +83,40 @@ int main(int argsize, char **args){
 				strcpy(filename, "LENNA.JPG"); 
 				strcpy(bkpfilename, filename);
 
+				if(img != NULL && img != memoryImg){
+					cvReleaseMat(&img);
+				}
+
 				img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
 
 				cvShowImage( "mainWin", img ); 
 				cvWaitKey(100);
 			break;
 
-			case 1 : menu_loadimage(filename, bkpfilename); break;
-			case 2 : menu_showimage(filename);  			break;
-			case 3 : menu_histogram(filename);  			break;
-			case 4 : menu_conv(filename); 					break;
-			case 5 : menu_equalize(filename) ; 				break;
-			case 6 : menu_limiarize(filename); 				break;
+			case 1 : menu_loadimage(&filename, &bkpfilename); break;
+
+			case 2 : 
+				if(strcmp(filename, "")){
+					if(memoryImg != NULL){
+						cvReleaseMat(&memoryImg);
+					}
+
+					memoryImg = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE); 
+					memoryImg_width = memoryImg->width; 
+					memoryImg_height = memoryImg->height; 
+					printf("Imagem guardada com sucesso!\n");
+				}
+				else{
+					printf("ERRO: nenhum arquivo carregado!\n");
+				}
+			break;
+
+			case 3 : menu_opimg(filename, memoryImg == NULL ? NULL : memoryImg->data.ptr, memoryImg_width, memoryImg_height); break;
+			case 4 : menu_showimage(filename);  			break;
+			case 5 : menu_histogram(filename);  			break;
+			case 6 : menu_conv(filename); 					break;
+			case 7 : menu_equalize(filename) ; 				break;
+			case 8 : menu_limiarize(filename); 				break;
 		}
 	}
 
@@ -97,26 +126,87 @@ int main(int argsize, char **args){
 	return 0;
 } 
 
-int menu_loadimage(char *filename, char* bkpfilename){
-	FILE *loadedFile = ask_inputfile(&filename);
+int menu_loadimage(char **filename, char **bkpfilename){
+	FILE *loadedFile = ask_inputfile(filename);
 	int result = loadedFile != NULL;
 
 	free(loadedFile);
 	//strcpy(filename, "LENNA.JPG");
 
 	if(result){
-		strcpy(bkpfilename, filename);
-		CvMat *img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
+		strcpy(*bkpfilename, *filename);
+		CvMat *img = cvLoadImageM(*filename, CV_LOAD_IMAGE_GRAYSCALE);
 
 		cvShowImage( "mainWin", img ); 
 		cvWaitKey(100);
 	}
 	else{
-		printf("Não foi possível carregar o arquivo %s", filename);
-		strcpy(filename, bkpfilename);
+		printf("Não foi possível carregar o arquivo %s", *filename);
+		strcpy(*filename, *bkpfilename);
 	}
 
 	return result;
+}
+
+void menu_opimg(char *filename, unsigned char *memoryMatrix, int matrix_size_x, int matrix_size_y){
+	CvMat *img, resimg;
+	char ynanswer[1];
+	int i, j, op;
+	unsigned char* sumimg = NULL;
+
+	if(strcmp(filename, "")){
+		if(memoryMatrix != NULL){
+			img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
+
+			printf("Escolha uma operação: \n");
+			printf("\t\t1 - Soma simples das duas imagens\n");
+			printf("\t\t2 - Raiz da soma dos quadrados das imagens\n");			
+
+			printf("Opção:");
+			scanf("%d", &op);
+
+			switch(op){
+				case 1 : sumimg = sum_images(img->data.ptr, memoryMatrix, min(img->width, matrix_size_x), min(img->height, matrix_size_y)); break;
+				case 2 : sumimg = radquadsum_images(img->data.ptr, memoryMatrix, min(img->width, matrix_size_x), min(img->height, matrix_size_y)); break;
+				default : printf("Opção inválida!\n");
+			}
+
+			if(sumimg != NULL){
+				resimg = cvMat(min(img->width, matrix_size_x), min(img->height, matrix_size_y), CV_8UC1, sumimg);
+
+				printf("A imagem ficará assim\n");
+
+				cvShowImage( "mainWin", &resimg); 
+				cvWaitKey(100);
+
+				printf("Deseja salvá-la? (s/n)\n");
+				scanf("%s", ynanswer);
+
+				if(ynanswer[0] == 's' || ynanswer[0] == 'S'){
+					cvSaveImage("out.jpg", &resimg);
+					strcpy(filename, "out.jpg");
+				}
+				else{
+					printf("Abortando...\n");
+
+					CvMat* bkp = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
+
+					cvShowImage( "mainWin", bkp); 
+					cvWaitKey(100);
+
+					cvReleaseMat(&bkp);
+				}
+			}
+			
+			cvReleaseMat(&img);
+		}
+		else{
+			printf("ERRO: nenhuma imagem em memória!\n");
+		}
+	}
+	else{
+		printf("ERRO: nenhum arquivo carregado!\n");
+	}
 }
 
 void menu_showimage(char *filename){
@@ -444,6 +534,10 @@ void free2dArr(void **arr, int size){
 	free(arr);
 }
 
+int min(int a, int b){
+	return a > b ? b : a;
+}
+
 void showImg(const char* id, CvMat *img){
 	cvNamedWindow( id, CV_WINDOW_AUTOSIZE ); // Create a window for display.
 	cvMoveWindow(id, 100, 100);
@@ -606,6 +700,39 @@ void limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int ma
 					nomatch = 0;
 				}
 }
+
+unsigned char *sum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2){
+	unsigned int *rawResult = (unsigned int*) malloc(min_x_m1_m2*min_y_m1_m2*sizeof(int));
+	unsigned char *result;
+	int i, j;
+
+	for(i = 0; i < min_y_m1_m2; i++)
+		for(j = 0; j < min_x_m1_m2; j++)
+			rawResult[i*min_x_m1_m2 + j] = matrix1[i*min_x_m1_m2 + j] + matrix2[i*min_x_m1_m2 + j];
+
+	result = normalize(rawResult, min_x_m1_m2*min_y_m1_m2);
+
+	free(rawResult);
+
+	return result;
+}
+
+unsigned char *radquadsum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2){
+	unsigned int *rawResult = (unsigned int*) malloc(min_x_m1_m2*min_y_m1_m2*sizeof(int));
+	unsigned char *result;
+	int i, j;
+
+	for(i = 0; i < min_y_m1_m2; i++)
+		for(j = 0; j < min_x_m1_m2; j++)
+			rawResult[i*min_x_m1_m2 + j] = sqrt(matrix1[i*min_x_m1_m2 + j]*matrix1[i*min_x_m1_m2 + j] + matrix2[i*min_x_m1_m2 + j]*matrix2[i*min_x_m1_m2 + j]);
+
+	result = normalize(rawResult, min_x_m1_m2*min_y_m1_m2);
+
+	free(rawResult);
+
+	return result;
+}
+
 
 
 
