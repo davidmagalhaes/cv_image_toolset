@@ -123,6 +123,13 @@ int main(int argsize, char **args){
 	free(filename);
 	free(bkpfilename);
 
+	if(img != NULL){
+		cvReleaseMat(&img);
+	}
+	if(memoryImg != NULL){
+		cvReleaseMat(&memoryImg);
+	}
+
 	return 0;
 } 
 
