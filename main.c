@@ -197,6 +197,8 @@ void menu_opimg(char *filename, unsigned char *memoryMatrix, int matrix_size_x, 
 				cvWaitKey(20);
 
 				confirm_save(filename, &resimg);
+
+				free(sumimg);
 			}
 			
 			cvReleaseMat(&img);
@@ -371,6 +373,8 @@ void menu_median(char *filename){
 		cvWaitKey(20);
 
 		confirm_save(filename, &resimg);
+
+		free(medianData);
 	}
 	else{
 		printf("ERRO: nenhum arquivo carregado!\n");
@@ -572,6 +576,8 @@ void show_histogram(unsigned int *histogram){
 	cvShowImage( "mainWin", mat); 
 	cvWaitKey(100);
 }
+
+//**********************************************************BUSINESS********************************************************************************
 
 //Faz a convolução de mask em matrix
 unsigned char *convolution(const unsigned char *matrix, double **mask, int matrix_size_x, int matrix_size_y, int mask_size_x, int mask_size_y){
