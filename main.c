@@ -26,6 +26,12 @@ void menu_conv(char *filename);
 void menu_histogram(char *filename);
 void menu_equalize(char *filename);
 void menu_limiarize(char *filename);
+void menu_median(char *filename);
+
+//Menu Auxiliaries
+void confirm_save(char *filename, CvMat*);
+int ask_repeatop();
+
 
 //Business Functions
 unsigned char *convolution(const unsigned char *matrix, double **mask, int matrix_size_x, int matrix_size_y, int mask_size_x, int mask_size_y);
@@ -33,6 +39,7 @@ unsigned char *normalize(const unsigned int *data, int data_size);
 unsigned int *histogram(const unsigned char *matrix, int matrix_size_x, int matrix_size_y);
 void equalize_htgr(unsigned int *histogram, unsigned char *matrix, int matrix_size_x, int matrix_size_y);
 void limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int matrix_size_x, int matrix_size_y);
+unsigned char *median3x3(const unsigned char *matrix1, int matrix_size_x, int matrix_size_y);
 void show_histogram(unsigned int *histogram);
 unsigned char *sum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2);
 unsigned char *radquadsum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2);
@@ -58,7 +65,7 @@ int main(int argsize, char **args){
 	cvNamedWindow( "mainWin", CV_WINDOW_AUTOSIZE ); // Create a window for display.
 	cvMoveWindow("mainWin", 100, 100);
 
-	while(acao != 9){
+	while(1){
 		fflush(stdin);
 		fflush(stdout);
 
@@ -73,7 +80,8 @@ int main(int argsize, char **args){
 		printf("\t\t6 - Convolução\n");
 		printf("\t\t7 - Equalização\n");
 		printf("\t\t8 - Limiariarização\n");
-		printf("\t\t9 - Sair\n");
+		printf("\t\t9 - Mediana\n");
+		printf("\t\t Pressione Ctrl + C à qualquer momento para Sair\n");
 
 		printf("Opção: ");
 		scanf("%d", &acao);
@@ -117,6 +125,7 @@ int main(int argsize, char **args){
 			case 6 : menu_conv(filename); 					break;
 			case 7 : menu_equalize(filename) ; 				break;
 			case 8 : menu_limiarize(filename); 				break;
+			case 9 : menu_median(filename);					break;
 		}
 	}
 
@@ -146,6 +155,8 @@ int menu_loadimage(char **filename, char **bkpfilename){
 
 		cvShowImage( "mainWin", img ); 
 		cvWaitKey(100);
+
+		cvReleaseMat(&img);
 	}
 	else{
 		printf("Não foi possível carregar o arquivo %s", *filename);
@@ -157,7 +168,6 @@ int menu_loadimage(char **filename, char **bkpfilename){
 
 void menu_opimg(char *filename, unsigned char *memoryMatrix, int matrix_size_x, int matrix_size_y){
 	CvMat *img, resimg;
-	char ynanswer[1];
 	int i, j, op;
 	unsigned char* sumimg = NULL;
 
@@ -184,25 +194,9 @@ void menu_opimg(char *filename, unsigned char *memoryMatrix, int matrix_size_x, 
 				printf("A imagem ficará assim\n");
 
 				cvShowImage( "mainWin", &resimg); 
-				cvWaitKey(100);
+				cvWaitKey(20);
 
-				printf("Deseja salvá-la? (s/n)\n");
-				scanf("%s", ynanswer);
-
-				if(ynanswer[0] == 's' || ynanswer[0] == 'S'){
-					cvSaveImage("out.jpg", &resimg);
-					strcpy(filename, "out.jpg");
-				}
-				else{
-					printf("Abortando...\n");
-
-					CvMat* bkp = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
-
-					cvShowImage( "mainWin", bkp); 
-					cvWaitKey(100);
-
-					cvReleaseMat(&bkp);
-				}
+				confirm_save(filename, &resimg);
 			}
 			
 			cvReleaseMat(&img);
@@ -221,6 +215,8 @@ void menu_showimage(char *filename){
 		CvMat *img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
 		cvShowImage( "mainWin", img ); 	
 		cvWaitKey(100);
+
+		cvReleaseMat(&img);
 	}
 	else{
 		printf("ERRO: nenhum arquivo carregado!\n");
@@ -228,7 +224,6 @@ void menu_showimage(char *filename){
 }
 
 void _conv(char *filename, CvMat* img, double **mask, int mask_size_x, int mask_size_y){
-	char ynanswer[1];
 	int input_size_x, input_size_y; 
 	unsigned char *convolutedData;
 
@@ -244,32 +239,13 @@ void _conv(char *filename, CvMat* img, double **mask, int mask_size_x, int mask_
 	printf("A imagem ficará assim\n");
 
 	cvShowImage( "mainWin", &resimg); 
-	cvWaitKey(100);
+	cvWaitKey(20);
 
-	printf("Aplicar novamente? (s/n)\n");
-	scanf("%s", ynanswer);
-
-	if(ynanswer[0] == 's' || ynanswer[0] == 'S'){
+	if(ask_repeatop()){
 		_conv(filename, &resimg, mask, mask_size_x, mask_size_y);
 	}
 	else{
-		printf("Deseja salvá-la? (s/n)\n");
-		scanf("%s", ynanswer);
-
-		if(ynanswer[0] == 's' || ynanswer[0] == 'S'){
-			cvSaveImage("out.jpg", &resimg);
-			strcpy(filename, "out.jpg");
-		}
-		else{
-			printf("Abortando...\n");
-
-			CvMat* bkp = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
-
-			cvShowImage( "mainWin", bkp); 
-			cvWaitKey(100);
-
-			cvReleaseMat(&bkp);
-		}
+		confirm_save(filename, &resimg);
 	}
 
 	free(convolutedData);
@@ -325,8 +301,6 @@ void menu_histogram(char *filename){
 }
 
 void menu_equalize(char *filename){
-	char ynanswer[1];
-
 	if(strcmp(filename, "")){
 		CvMat* img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
 
@@ -336,34 +310,15 @@ void menu_equalize(char *filename){
 
 		equalize_htgr(histogr, img->data.ptr, img->width, img->height);
 
+		fflush(stdin);
+		fflush(stdout);
+
 		printf("A imagem ficará assim\n");
 
 		cvShowImage( "mainWin", img ); 
 		cvWaitKey(100);
 
-		fflush(stdin);
-		fflush(stdout);
-
-		printf("Deseja salvá-la? (s/n)\n");
-		scanf("%s", ynanswer);
-
-		if(ynanswer[0] == 's' || ynanswer[0] == 'S'){
-			cvSaveImage("out.jpg", img);
-
-			strcpy(filename, "out.jpg");
-
-			printf("\nImagem equalizada com sucesso!\n\n");
-		}
-		else{
-			printf("Abortando...\n");
-
-			CvMat* bkp = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
-
-			cvShowImage( "mainWin", bkp); 
-			cvWaitKey(100);
-
-			cvReleaseMat(&bkp);
-		}
+		confirm_save(filename, img);
 
 		cvReleaseMat(&img);
 	}
@@ -375,7 +330,6 @@ void menu_equalize(char *filename){
 void menu_limiarize(char *filename){
 	unsigned char *limiars;
 	int pivot_sz;
-	char ynanswer[1];
 
 	if(strcmp(filename, "")){
 		CvMat* img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
@@ -390,28 +344,33 @@ void menu_limiarize(char *filename){
 			cvShowImage( "mainWin", img ); 
 			cvWaitKey(100);
 
-			printf("Deseja salvá-la? (s/n)\n");
-			scanf("%s", ynanswer);
-
-			if(ynanswer[0] == 's' || ynanswer[0] == 'S'){
-				cvSaveImage("out.jpg", img);
-				strcpy(filename, "out.jpg");
-
-				printf("\nImagem equalizada com sucesso!\n\n");
-			}
-			else{
-				printf("Abortando...\n");
-
-				CvMat* bkp = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
-
-				cvShowImage( "mainWin", bkp); 
-				cvWaitKey(100);
-
-				cvReleaseMat(&bkp);
-			}
+			confirm_save(filename, img);
 		}
 
 		cvReleaseMat(&img);
+	}
+	else{
+		printf("ERRO: nenhum arquivo carregado!\n");
+	}
+}
+
+void menu_median(char *filename){
+	if(strcmp(filename, "")){
+		CvMat* img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
+		unsigned char* medianData;
+
+		printf("Dimensions: %d x %d \n", img->width, img->height);
+
+		medianData = median3x3(img->data.ptr, img->width, img->height);
+
+		CvMat resimg = cvMat(img->height, img->width, CV_8UC1, medianData);
+
+		printf("A imagem ficará assim\n");
+
+		cvShowImage( "mainWin", &resimg); 
+		cvWaitKey(20);
+
+		confirm_save(filename, &resimg);
 	}
 	else{
 		printf("ERRO: nenhum arquivo carregado!\n");
@@ -474,6 +433,39 @@ char ask_limiars(unsigned char** limiars, int* pivot_sz){
 	}	
 	
 	return result;	
+}
+
+void confirm_save(char* filename, CvMat *img){
+	char ynanswer[1];
+
+	printf("Deseja salvá-la? (s/n)\n");
+	scanf("%s", ynanswer);
+
+	if(ynanswer[0] == 's' || ynanswer[0] == 'S'){
+		cvSaveImage("out.jpg", img);
+		strcpy(filename, "out.jpg");
+
+		printf("\nImagem salva com sucesso!\n\n");
+	}
+	else{
+		printf("Abortando...\n");
+
+		CvMat* bkp = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
+
+		cvShowImage( "mainWin", bkp); 
+		cvWaitKey(100);
+
+		cvReleaseMat(&bkp);
+	}
+}
+
+int ask_repeatop(){
+	char ynanswer[1];
+
+	printf("Aplicar novamente? (s/n)\n");
+	scanf("%s", ynanswer);
+
+	return ynanswer[0] == 's' || ynanswer[0] == 'S';
 }
 
 FILE *ask_inputfile(char **filepath){
@@ -699,7 +691,7 @@ void limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int ma
 					nomatch = 0;
 				}
 				else if(matrix[i*matrix_size_x + j] < pivot[z]) {
-					matrix[i*matrix_size_x + j] = pivot[z-1];
+					matrix[i*matrix_size_x + j] = (pivot[z-1] + pivot[z])/2;
 					nomatch = 0;
 				}
 				else if((z+1) == pivot_sz && matrix[i*matrix_size_x + j] > pivot[z]){
@@ -707,6 +699,51 @@ void limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int ma
 					nomatch = 0;
 				}
 }
+
+unsigned char *median3x3(const unsigned char *matrix1, int matrix_size_x, int matrix_size_y){
+	unsigned char *result = (unsigned char*) malloc(matrix_size_x*matrix_size_y);
+	int neighborhood[8];
+	int i, j, z, w, aux;
+
+	for(i = 0; i < matrix_size_y; i++)
+		for(j = 0; j < matrix_size_x; j++){
+			neighborhood[0] = neighborhood[1] = neighborhood[2] = neighborhood[3] =
+			neighborhood[4] = neighborhood[5] = neighborhood[6] = neighborhood[7] = -1;
+
+			if(i - 1 >= 0 && j - 1 >= 0)
+				neighborhood[0] = matrix1[(i-1)*matrix_size_x + j-1];
+			if(i - 1 >= 0)
+				neighborhood[1] = matrix1[(i-1)*matrix_size_x + j];
+			if(i - 1 >= 0 && j + 1 < matrix_size_x)
+				neighborhood[2] = matrix1[(i-1)*matrix_size_x + j + 1];
+			if(j - 1 >= 0)
+				neighborhood[3] = matrix1[i*matrix_size_x + j - 1];
+			if(j + 1 < matrix_size_x)
+				neighborhood[4] = matrix1[i*matrix_size_x + j + 1];
+			if(i + 1 < matrix_size_y && j - 1 >= 0)
+				neighborhood[5] = matrix1[(i+1)*matrix_size_x + j - 1];
+			if(i + 1 < matrix_size_y)
+				neighborhood[6] = matrix1[(i+1)*matrix_size_x + j];
+			if(i + 1 < matrix_size_y && j + 1 < matrix_size_x)
+				neighborhood[7] = matrix1[(i+1)*matrix_size_x + j + 1];
+
+			for(z = 0; z < 8; z++)
+				for(w = z+1; w < 8; w++){
+					if(neighborhood[z] > neighborhood[w]){
+						aux = neighborhood[z];
+						neighborhood[z] = neighborhood[w];
+						neighborhood[w] = aux;
+					}
+				}
+
+			for(z = 0; neighborhood[z] == -1; z++);
+
+			result[i*matrix_size_x + j] = (unsigned char) ((8+z) % 2 == 0) ? ((neighborhood[(8+z)/2] + neighborhood[1 + (8+z)/2]) / 2) : (neighborhood[1 + (8+z)/2]) ; 
+		}
+
+	return result;
+}
+
 
 unsigned char *sum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2){
 	unsigned int *rawResult = (unsigned int*) malloc(min_x_m1_m2*min_y_m1_m2*sizeof(int));
