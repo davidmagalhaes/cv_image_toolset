@@ -179,7 +179,7 @@ void menu_opimg(char *filename, unsigned char *memoryMatrix, int matrix_size_x, 
 			}
 
 			if(sumimg != NULL){
-				resimg = cvMat(min(img->width, matrix_size_x), min(img->height, matrix_size_y), CV_8UC1, sumimg);
+				resimg = cvMat(min(img->height, matrix_size_y), min(img->width, matrix_size_x), CV_8UC1, sumimg);
 
 				printf("A imagem ficará assim\n");
 
@@ -715,7 +715,7 @@ unsigned char *sum_images(const unsigned char *matrix1, const unsigned char *mat
 
 	for(i = 0; i < min_y_m1_m2; i++)
 		for(j = 0; j < min_x_m1_m2; j++)
-			rawResult[i*min_x_m1_m2 + j] = matrix1[i*min_x_m1_m2 + j] + matrix2[i*min_x_m1_m2 + j];
+			rawResult[i*min_x_m1_m2 + j] = ((unsigned int)matrix1[i*min_x_m1_m2 + j]) + matrix2[i*min_x_m1_m2 + j];
 
 	result = normalize(rawResult, min_x_m1_m2*min_y_m1_m2);
 
@@ -731,7 +731,7 @@ unsigned char *radquadsum_images(const unsigned char *matrix1, const unsigned ch
 
 	for(i = 0; i < min_y_m1_m2; i++)
 		for(j = 0; j < min_x_m1_m2; j++)
-			rawResult[i*min_x_m1_m2 + j] = sqrt(matrix1[i*min_x_m1_m2 + j]*matrix1[i*min_x_m1_m2 + j] + matrix2[i*min_x_m1_m2 + j]*matrix2[i*min_x_m1_m2 + j]);
+			rawResult[i*min_x_m1_m2 + j] = sqrt(((unsigned int)matrix1[i*min_x_m1_m2 + j])*matrix1[i*min_x_m1_m2 + j] + ((unsigned int)matrix2[i*min_x_m1_m2 + j])*matrix2[i*min_x_m1_m2 + j]);
 
 	result = normalize(rawResult, min_x_m1_m2*min_y_m1_m2);
 
