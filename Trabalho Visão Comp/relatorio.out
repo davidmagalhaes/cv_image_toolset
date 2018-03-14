@@ -1,0 +1,13 @@
+\BOOKMARK [1][-]{section.1}{Introdu\347\343o}{}% 1
+\BOOKMARK [1][-]{section.2}{Testes com filtros passa-baixa}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{Teste com filtro da mediana}{section.2}% 3
+\BOOKMARK [2][-]{subsection.2.2}{Teste com filtro da m\351dia}{section.2}% 4
+\BOOKMARK [2][-]{subsection.2.3}{Teste com filtro gaussiano}{section.2}% 5
+\BOOKMARK [1][-]{section.3}{Testes com filtros passa-alta}{}% 6
+\BOOKMARK [2][-]{subsection.3.1}{Teste com filtro laplaciano}{section.3}% 7
+\BOOKMARK [2][-]{subsection.3.2}{Teste com filtro prewit}{section.3}% 8
+\BOOKMARK [2][-]{subsection.3.3}{Teste com filtro sobel}{section.3}% 9
+\BOOKMARK [1][-]{section.4}{Testes com equaliza\347\343o}{}% 10
+\BOOKMARK [1][-]{section.5}{Testes com limiariza\347\343o e multilimiariza\347\343o}{}% 11
+\BOOKMARK [1][-]{section.6}{Resumo Geral}{}% 12
+\BOOKMARK [1][-]{section.7}{Refer\352ncias Bibliogr\341ficas}{}% 13
