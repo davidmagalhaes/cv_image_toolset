@@ -4,19 +4,36 @@
 #include <string.h>
 #include <opencv/cv.h>
 #include <highgui.h>
+#include <stdarg.h>
+
+struct _stack {
+	int *value;
+	struct _stack *next;
+};
+
+typedef struct _stack TStack;
 
 //Input functions
 double **ask_mask(int*, int*);
 char ask_limiars(unsigned char**, int*);
+void ask_locallim_data(unsigned char*, int*, int*);
 FILE *ask_outputfile();
 FILE *ask_inputfile(char **filepath);
 
 //Utils
+void clean_stdin();
 unsigned long file_size(FILE*);
 void **create2dArr(int, int, size_t);
 void free2dArr(void **arr, int size);
 void showImg(const char*, CvMat*);
 int min(int a, int b);
+int max(int a, int b);
+int *pop(TStack *stack);
+void push(TStack *stack, int va_length, ...);
+int stack_size(TStack *stack);
+TStack *new_stack();
+void free_stack(TStack *stack);
+
 
 //Menus
 int  menu_loadimage(char **filename, char** bkpfilename); 
@@ -27,10 +44,14 @@ void menu_histogram(char *filename);
 void menu_equalize(char *filename);
 void menu_limiarize(char *filename);
 void menu_median(char *filename);
+void menu_reggrowth(char *filename);
+void menu_hough_transform(char *filename);
 
 //Menu Auxiliaries
 void confirm_save(char *filename, CvMat*);
 int ask_repeatop();
+void show_and_trysave(char *filename, int, int, unsigned char*);
+CvMat *matFromFile(char *filename);
 
 
 //Business Functions
@@ -38,8 +59,11 @@ unsigned char *convolution(const unsigned char *matrix, double **mask, int matri
 unsigned char *normalize(const unsigned int *data, int data_size);
 unsigned int *histogram(const unsigned char *matrix, int matrix_size_x, int matrix_size_y);
 void equalize_htgr(unsigned int *histogram, unsigned char *matrix, int matrix_size_x, int matrix_size_y);
-void limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int matrix_size_x, int matrix_size_y);
+unsigned char *limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int matrix_size_x, int matrix_size_y);
+unsigned char *local_limiarize(unsigned char *matrix, unsigned char contrast, int matrix_size_x, int matrix_size_y, int window_size_x, int window_size_y);
+unsigned char *reggrowth(unsigned char*, int matrix_size_x, int matrix_size_y, int seed_pos_x, int seed_pos_y);
 unsigned char *median3x3(const unsigned char *matrix1, int matrix_size_x, int matrix_size_y);
+unsigned char *hough_transform(const unsigned char *matrix, int matrix_size_x, int matrix_size_y);
 void show_histogram(unsigned int *histogram);
 unsigned char *sum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2);
 unsigned char *radquadsum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2);
@@ -51,7 +75,7 @@ unsigned char *radquadsum_images(const unsigned char *matrix1, const unsigned ch
 
 //Input Functions
 int main(int argsize, char **args){
-	int acao;
+	char acao;
 	char *filename = (char*) malloc(150);
 	int it, jt;
 	char *bkpfilename = (char*) malloc(150);
@@ -65,10 +89,7 @@ int main(int argsize, char **args){
 	cvNamedWindow( "mainWin", CV_WINDOW_AUTOSIZE ); // Create a window for display.
 	cvMoveWindow("mainWin", 100, 100);
 
-	while(1){
-		fflush(stdin);
-		fflush(stdout);
-
+	while(acao != 'x'){
 		printf("\n\t\t\t Image toolset \n\n");
 		printf("\t\tEscolha uma ação: \n");
 		printf("\t\t0 - Carregar imagem LENNA.JPG\n");
@@ -81,13 +102,15 @@ int main(int argsize, char **args){
 		printf("\t\t7 - Equalização\n");
 		printf("\t\t8 - Limiariarização\n");
 		printf("\t\t9 - Mediana\n");
-		printf("\t\t Pressione Ctrl + C à qualquer momento para Sair\n");
+		printf("\t\ta - Crescimento de Região\n");
+		printf("\t\tb - Transformada de Hough\n");
+		printf("\t\tx - Sair\n\n");
 
 		printf("Opção: ");
-		scanf("%d", &acao);
+		scanf("%c", &acao);
 
 		switch(acao){
-			case 0 : 
+			case '0' : 
 				strcpy(filename, "LENNA.JPG"); 
 				strcpy(bkpfilename, filename);
 
@@ -101,9 +124,9 @@ int main(int argsize, char **args){
 				cvWaitKey(100);
 			break;
 
-			case 1 : menu_loadimage(&filename, &bkpfilename); break;
+			case '1' : menu_loadimage(&filename, &bkpfilename); break;
 
-			case 2 : 
+			case '2' : 
 				if(strcmp(filename, "")){
 					if(memoryImg != NULL){
 						cvReleaseMat(&memoryImg);
@@ -119,14 +142,18 @@ int main(int argsize, char **args){
 				}
 			break;
 
-			case 3 : menu_opimg(filename, memoryImg == NULL ? NULL : memoryImg->data.ptr, memoryImg_width, memoryImg_height); break;
-			case 4 : menu_showimage(filename);  			break;
-			case 5 : menu_histogram(filename);  			break;
-			case 6 : menu_conv(filename); 					break;
-			case 7 : menu_equalize(filename) ; 				break;
-			case 8 : menu_limiarize(filename); 				break;
-			case 9 : menu_median(filename);					break;
+			case '3' : menu_opimg(filename, memoryImg == NULL ? NULL : memoryImg->data.ptr, memoryImg_width, memoryImg_height); break;
+			case '4' : menu_showimage(filename);  		break;
+			case '5' : menu_histogram(filename);  		break;
+			case '6' : menu_conv(filename); 			break;
+			case '7' : menu_equalize(filename) ; 		break;
+			case '8' : menu_limiarize(filename); 		break;
+			case '9' : menu_median(filename);			break;
+			case 'a' : menu_reggrowth(filename);		break;
+			case 'b' : menu_hough_transform(filename);	break;
 		}
+
+		clean_stdin();
 	}
 
 	free(filename);
@@ -213,15 +240,53 @@ void menu_opimg(char *filename, unsigned char *memoryMatrix, int matrix_size_x, 
 }
 
 void menu_showimage(char *filename){
-	if(strcmp(filename, "")){
-		CvMat *img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
+	CvMat *img;
+
+	if(img = matFromFile(filename)){
 		cvShowImage( "mainWin", img ); 	
 		cvWaitKey(100);
 
 		cvReleaseMat(&img);
 	}
-	else{
-		printf("ERRO: nenhum arquivo carregado!\n");
+}
+
+void menu_hough_transform(char* filename){
+	CvMat *img;
+	unsigned char* newimgdata;
+
+	if(img = matFromFile(filename)){
+		newimgdata = hough_transform(img->data.ptr, img->height, img->width);
+
+		show_and_trysave(filename, 180, sqrt(2.0)*max(img->height, img->width), newimgdata);
+
+		free(newimgdata);
+	}
+}
+
+void menu_reggrowth(char *filename){
+	CvMat *img;
+	int seed_pos_x, seed_pos_y;
+	unsigned char *newimgdata;
+	
+	if(img = matFromFile(filename)){
+		clean_stdin();
+		printf("Dimensions: %d x %d \n", img->width, img->height);
+		printf("Informe um seed (x,y)\n");
+		scanf("%d,%d", &seed_pos_x, &seed_pos_y);
+		clean_stdin();
+
+		newimgdata = reggrowth(img->data.ptr, img->width, img->height, seed_pos_x, seed_pos_y);
+
+		CvMat resimg = cvMat(img->height, img->width, CV_8UC1, newimgdata);
+
+		printf("A imagem ficará assim\n");
+
+		cvShowImage( "mainWin", &resimg); 
+		cvWaitKey(20);
+
+		confirm_save(filename, &resimg);
+
+		free(newimgdata);
 	}
 }
 
@@ -312,8 +377,7 @@ void menu_equalize(char *filename){
 
 		equalize_htgr(histogr, img->data.ptr, img->width, img->height);
 
-		fflush(stdin);
-		fflush(stdout);
+		clean_stdin();
 
 		printf("A imagem ficará assim\n");
 
@@ -330,23 +394,50 @@ void menu_equalize(char *filename){
 }
 
 void menu_limiarize(char *filename){
+	char opcao;
 	unsigned char *limiars;
+	unsigned char threshold;
+	int window_size_x, window_size_y;
 	int pivot_sz;
+	unsigned char *newimgdata = NULL;
 
 	if(strcmp(filename, "")){
 		CvMat* img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
 
 		printf("Dimensions: %d x %d \n", img->width, img->height);
 
-		if(!ask_limiars(&limiars, &pivot_sz)){
-			limiarize(img->data.ptr, limiars, pivot_sz, img->width, img->height);
+		printf("\n\t\t\t Selecione o tipo de limiariarização \n\n");
+		printf("\t\t0 - Global\n");
+		printf("\t\t1 - Local\n");
+
+		clean_stdin();
+
+		printf("Opção: ");
+		scanf("%c", &opcao);
+
+		clean_stdin();
+
+		if(opcao == '0'){
+			if(!ask_limiars(&limiars, &pivot_sz)){
+				newimgdata = limiarize(img->data.ptr, limiars, pivot_sz, img->width, img->height);
+			}
+		}
+		else{
+			ask_locallim_data(&threshold, &window_size_x, &window_size_y);
+			newimgdata = local_limiarize(img->data.ptr, threshold, img->width, img->height, window_size_x, window_size_y);
+		}
+
+		if(newimgdata){
+			CvMat resimg = cvMat(img->height, img->width, CV_8UC1, newimgdata);
 
 			printf("A imagem ficará assim\n");
 
-			cvShowImage( "mainWin", img ); 
+			cvShowImage( "mainWin", &resimg); 
 			cvWaitKey(100);
 
-			confirm_save(filename, img);
+			confirm_save(filename, &resimg);
+
+			free(newimgdata);
 		}
 
 		cvReleaseMat(&img);
@@ -390,14 +481,26 @@ double **ask_mask(int *n1, int *n2){
 	for(i = 0; i < *n1; i++)
 		for(j = 0; j < *n2; j++){
 			double tmp;
-			fflush(stdin);
-			fflush(stdout);
+			clean_stdin();
 			printf("Digite o valor (%d, %d):\n", i, j);
 			scanf("%lf", &tmp);
 			mask[i][j] = tmp;
 		}
 
 	return mask;
+}
+
+
+void ask_locallim_data(unsigned char* threshold, int* window_size_x, int* window_size_y){
+	printf("Informe o tamanho da janela (N1xN2):\n");
+	scanf("%dx%d", window_size_x, window_size_y);
+
+	clean_stdin();
+
+	printf("Informe o limiar:\n");
+	scanf("%c", threshold);
+
+	clean_stdin();
 }
 
 char ask_limiars(unsigned char** limiars, int* pivot_sz){
@@ -414,8 +517,7 @@ char ask_limiars(unsigned char** limiars, int* pivot_sz){
 	printf("Informe os limiares em ordem crescente\n");
 
 	for(i = 0; i < psz && !result; i++){
-		fflush(stdout);
-		fflush(stdin);
+		clean_stdin();
 		
 		printf("Informe o limiar %d:\n", i+1);
 		scanf("%d", &user_input);
@@ -437,6 +539,17 @@ char ask_limiars(unsigned char** limiars, int* pivot_sz){
 	}	
 	
 	return result;	
+}
+
+void show_and_trysave(char *filename, int height, int width, unsigned char* newimgdata){
+	CvMat resimg = cvMat(height, width, CV_8UC1, newimgdata);
+
+	printf("A imagem ficará assim\n");
+
+	cvShowImage( "mainWin", &resimg); 
+	cvWaitKey(20);
+
+	confirm_save(filename, &resimg);
 }
 
 void confirm_save(char* filename, CvMat *img){
@@ -461,6 +574,21 @@ void confirm_save(char* filename, CvMat *img){
 
 		cvReleaseMat(&bkp);
 	}
+}
+
+CvMat *matFromFile(char *filename){
+	CvMat *img;
+
+	if(strcmp(filename, "")){
+		img = cvLoadImageM(filename, CV_LOAD_IMAGE_GRAYSCALE);
+		
+	}
+	else{
+		printf("ERRO: nenhum arquivo carregado!\n");
+		img = NULL;
+	}
+
+	return img;
 }
 
 int ask_repeatop(){
@@ -505,6 +633,14 @@ FILE *ask_outputfile(){
 }
 
 //Utils
+void clean_stdin()
+{
+    int c;
+    do {
+        c = getchar();
+    } while (c != '\n' && c != EOF);
+}
+
 unsigned long file_size(FILE *fp){
 	int size = 0;
 	unsigned char buffer[1024];
@@ -539,6 +675,67 @@ void free2dArr(void **arr, int size){
 
 int min(int a, int b){
 	return a > b ? b : a;
+}
+
+int max(int a, int b){
+	return a < b ? b : a;
+}
+
+TStack *new_stack(){
+	TStack *newstack = (TStack*) malloc(sizeof(TStack));
+
+	newstack->value = (int*) malloc(sizeof(int));
+	newstack->value[0] = 0;
+	newstack->next = NULL;
+
+	return newstack;
+}
+
+void free_stack(TStack *stack){
+	TStack *holder;
+
+	do{
+		holder = stack;
+		stack = stack->next;
+		free(holder->value);
+		free(holder);
+	}while(stack);
+}
+
+int stack_size(TStack *stack){
+	return stack->value[0];
+}
+
+void push(TStack *stack, int va_length, ...){
+	TStack *headnode = new_stack();
+	int *value = (int*) malloc(sizeof(int)*va_length);
+	int i;
+	va_list args;
+
+	va_start(args, va_length);
+
+	for(i = 0; i < va_length; i++){
+		value[i] = va_arg(args, int);
+	}
+
+	headnode->value = value;
+	headnode->next = stack->next;
+
+	stack->value[0]++;
+	stack->next = headnode;
+
+	va_end(args);
+}
+
+int *pop(TStack *stack){
+	TStack *oldnode = stack->next;
+	int *value = oldnode->value;
+	
+	stack->value[0]--;
+	stack->next = oldnode->next;
+	free(oldnode);
+
+	return value;
 }
 
 void showImg(const char* id, CvMat *img){
@@ -686,24 +883,134 @@ void equalize_htgr(unsigned int *histogram, unsigned char *matrix, int matrix_si
 	}
 }
 
-void limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int matrix_size_x, int matrix_size_y){
+char chkpivot(unsigned char value, unsigned char pivot){
+	return abs(pivot - value) < 5;
+}
+
+unsigned char *reggrowth(unsigned char* matrix, int matrix_size_x, int matrix_size_y, int seed_pos_x, int seed_pos_y){
+	TStack *stack = new_stack();
+	int *point;
+	int pox, poy;
+	unsigned char pivot = matrix[seed_pos_x*matrix_size_x + seed_pos_y];
+	unsigned char *result = (unsigned char*) malloc(matrix_size_x*matrix_size_y*sizeof(unsigned char));
+
+	memcpy(result, matrix, matrix_size_x*matrix_size_y);
+
+	push(stack, 2, seed_pos_x, seed_pos_y);
+
+	while(stack_size(stack)){
+		point = pop(stack);
+		pox = point[0];
+		poy = point[1];
+
+		free(point); 
+
+		if(chkpivot(result[poy*matrix_size_x + pox], pivot)){
+			result[poy*matrix_size_x + pox] = 0x00;
+
+			if(pox+1 < matrix_size_x)
+				if(chkpivot(result[poy*matrix_size_x + pox + 1], pivot))
+					push(stack, 2, pox + 1, poy);
+
+			if(pox-1 >= 0)
+				if(chkpivot(result[poy*matrix_size_x + pox - 1], pivot))
+					push(stack, 2, pox - 1, poy);
+
+			if(pox+1 < matrix_size_x && poy+1 < matrix_size_y)
+				if(chkpivot(result[(poy+1)*matrix_size_x + pox + 1], pivot))
+					push(stack, 2, pox + 1, poy + 1);
+
+			if(pox-1 >= 0 && poy+1 < matrix_size_y)
+				if(chkpivot(result[(poy+1)*matrix_size_x + pox - 1], pivot))
+					push(stack, 2, pox - 1, poy + 1);
+
+			if(pox+1 < matrix_size_x && poy-1 >= 0)
+				if(chkpivot(result[(poy-1)*matrix_size_x + pox + 1], pivot))
+					push(stack, 2, pox + 1, poy - 1);
+
+			if(pox-1 >= 0 && poy-1 >= 0)
+				if(chkpivot(result[(poy-1)*matrix_size_x + pox - 1], pivot))
+					push(stack, 2, pox - 1, poy - 1);
+
+			if(poy+1 < matrix_size_y)
+				if(chkpivot(result[(poy+1)*matrix_size_x + pox], pivot))
+					push(stack, 2, pox, poy+1);
+
+			if(poy-1 >= 0)
+				if(chkpivot(result[(poy-1)*matrix_size_x + pox], pivot))
+					push(stack, 2, pox, poy-1);
+		}
+	}
+
+	free_stack(stack);
+
+	return result;
+}
+
+unsigned char *limiarize(unsigned char *matrix, unsigned char *pivot, int pivot_sz, int matrix_size_x, int matrix_size_y){
 	int i, j, z, nomatch = 1;
+	unsigned char *result = (unsigned char*) malloc(matrix_size_x*matrix_size_y*sizeof(unsigned char));
 
 	for(i = 0; i < matrix_size_y; i++)
 		for(j = 0; j < matrix_size_x; j++)
 			for(z = 0, nomatch = 1; z < pivot_sz && nomatch; z++) 
 				if(z == 0 && matrix[i*matrix_size_x + j] < pivot[z]){
-					matrix[i*matrix_size_x + j] = 0;
+					result[i*matrix_size_x + j] = 0;
 					nomatch = 0;
 				}
 				else if(matrix[i*matrix_size_x + j] < pivot[z]) {
-					matrix[i*matrix_size_x + j] = (pivot[z-1] + pivot[z])/2;
+					result[i*matrix_size_x + j] = (pivot[z-1] + pivot[z])/2;
 					nomatch = 0;
 				}
 				else if((z+1) == pivot_sz && matrix[i*matrix_size_x + j] > pivot[z]){
-					matrix[i*matrix_size_x + j] = 255;
+					result[i*matrix_size_x + j] = 255;
 					nomatch = 0;
 				}
+
+	return result;
+}
+
+unsigned char *local_limiarize(unsigned char *matrix, unsigned char threshold, int matrix_size_x, int matrix_size_y, int window_size_x, int window_size_y){
+	int i, j, w, z;
+	int halfsz_x = window_size_x / 2;
+	int halfsz_y = window_size_y / 2;
+	int xoffset, yoffset, exoffset, eyoffset;
+	int maxgray, mingray, midgray;
+	unsigned char *result = (unsigned char*) malloc(matrix_size_x*matrix_size_y*sizeof(unsigned char));
+
+	for(z = 0; z < matrix_size_y; z++)
+		for(w = 0; w < matrix_size_x; w++){
+			xoffset = 0; yoffset = 0; exoffset = 0; eyoffset = 0;
+			maxgray = 0x00; mingray = 0xFF; midgray = 0x00;
+
+			if(z - halfsz_y < 0){
+				yoffset = halfsz_y -z;
+			}
+			if(z + halfsz_y > matrix_size_y){
+				eyoffset = (z + halfsz_y) - matrix_size_y;
+			}
+			if(w - halfsz_x < 0){
+				xoffset = halfsz_x -w; 
+			}
+			if(w + halfsz_x > matrix_size_x){
+				exoffset = (w + halfsz_x) - matrix_size_x ;
+			}
+
+			for(j = yoffset; j < window_size_y - eyoffset; j++)
+				for(i = xoffset; i < window_size_x - exoffset; i++){
+					int val = matrix[(z + j - halfsz_y)*matrix_size_x + (w + i - halfsz_x)];
+
+					if(maxgray < val)
+						maxgray = val;
+					if(mingray > val)
+						mingray = val;
+				}
+
+			midgray = (maxgray + mingray) / 2;
+			result[z*matrix_size_x + w] = midgray >= threshold ? 0xFF : 0x00;
+		}
+
+	return result;
 }
 
 unsigned char *median3x3(const unsigned char *matrix1, int matrix_size_x, int matrix_size_y){
@@ -750,6 +1057,32 @@ unsigned char *median3x3(const unsigned char *matrix1, int matrix_size_x, int ma
 	return result;
 }
 
+unsigned char *hough_transform(const unsigned char *matrix, int matrix_size_x, int matrix_size_y){
+	double hough_h = sqrt(2.0) * max(matrix_size_x, matrix_size_y) / 2.0;
+	unsigned int *rawResult = (unsigned int*) malloc(((int)hough_h)*180*2*sizeof(int));
+	unsigned char *result;
+	int i, j, angle;
+	int centerx = matrix_size_x/2;
+	int centery = matrix_size_y/2;
+	double r;
+
+	memset(rawResult, 0, ((int)hough_h)*180*2*sizeof(int));
+
+	for(i = 0; i < matrix_size_y; i++)
+		for(j = 0; j < matrix_size_x; j++)
+			if(matrix[ (i*matrix_size_x) + j] >= 250)
+				for(angle = 0; angle < 180; angle++){
+					r = (j-centerx) * cos(angle * M_PI / 180) + (i-centery) * sin(angle * M_PI / 180);
+					rawResult[(int)round(angle*hough_h*2) + ((int)round(r + hough_h))]++; 
+				}
+
+
+	result = normalize(rawResult, ((int)hough_h)*180*2);
+
+	free(rawResult);
+
+	return result;
+}
 
 unsigned char *sum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2){
 	unsigned int *rawResult = (unsigned int*) malloc(min_x_m1_m2*min_y_m1_m2*sizeof(int));
