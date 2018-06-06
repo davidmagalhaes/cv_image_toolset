@@ -5,6 +5,31 @@
 #include <opencv/cv.h>
 #include <highgui.h>
 #include <stdarg.h>
+#include <opencv2/core/core_c.h>
+#include <opencv2/core/types_c.h>
+#include <opencv2/imgproc.hpp>
+#include "opencv2/opencv.hpp"   
+#include "opencv2/ml/ml.hpp"
+
+struct _point{
+	int x;
+	int y;
+};
+
+typedef struct _point TPoint;
+
+struct _binimg{
+	unsigned char *data;
+	TPoint *borders;
+	int borders_size;
+	unsigned int* signature;
+	int width;
+	int height;
+	unsigned char val;
+	struct _binimg *next;
+};
+
+typedef struct _binimg Tbinimg;
 
 struct _stack {
 	int *value;
@@ -46,6 +71,7 @@ void menu_limiarize(char *filename);
 void menu_median(char *filename);
 void menu_reggrowth(char *filename);
 void menu_hough_transform(char *filename);
+void menu_numbimg();
 
 //Menu Auxiliaries
 void confirm_save(char *filename, CvMat*);
@@ -67,6 +93,9 @@ unsigned char *hough_transform(const unsigned char *matrix, int matrix_size_x, i
 void show_histogram(unsigned int *histogram);
 unsigned char *sum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2);
 unsigned char *radquadsum_images(const unsigned char *matrix1, const unsigned char *matrix2, int min_x_m1_m2, int min_y_m1_m2);
+void extract_attr_signature(Tbinimg*, int, int, int);
+void classify(cv::Ptr<cv::ml::SVM> svm, Tbinimg *head, int n_img, int imgx, int imgy);
+cv::Ptr<cv::ml::SVM> svm_training(Tbinimg *head, int n_img, int imgx, int imgy);
 
 //TODO
 //Imagem do histograma: implementar função show_histogram
@@ -104,6 +133,7 @@ int main(int argsize, char **args){
 		printf("\t\t9 - Mediana\n");
 		printf("\t\ta - Crescimento de Região\n");
 		printf("\t\tb - Transformada de Hough\n");
+		printf("\t\tc - Testes de extração de atributos\n");
 		printf("\t\tx - Sair\n\n");
 
 		printf("Opção: ");
@@ -151,6 +181,7 @@ int main(int argsize, char **args){
 			case '9' : menu_median(filename);			break;
 			case 'a' : menu_reggrowth(filename);		break;
 			case 'b' : menu_hough_transform(filename);	break;
+			case 'c' : menu_numbimg();					break;
 		}
 
 		clean_stdin();
@@ -261,6 +292,210 @@ void menu_hough_transform(char* filename){
 
 		free(newimgdata);
 	}
+}
+
+void menu_numbimg(){
+	char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+	FILE *fp = fopen("ocr_car_numbers_rotulado.txt", "r");
+	int n_img = 0;
+	int i;
+	Tbinimg *head = NULL, *base = NULL;
+	int acertos = 0, erros = 0;
+
+	printf("carregando arquivo de números...\n");
+	clean_stdin();
+
+	if (fp == NULL)
+        exit(EXIT_FAILURE);
+
+    while ((read = getline(&line, &len, fp)) != -1) {
+    	Tbinimg *binimg = (Tbinimg*) malloc(sizeof(Tbinimg));
+    	
+    	binimg->width = 35;
+    	binimg->height = 35;
+    	binimg->data = (unsigned char*) malloc(binimg->width*binimg->height*sizeof(char));
+
+    	for(i = 0; i < binimg->width*binimg->height; i++){
+    		binimg->data[i] = (line[0] - '0') * 255;
+    		line = line + 2;
+    	}
+    	
+    	binimg->val = line[0] - '0';
+
+    	binimg->next = head;
+    	head = binimg;
+
+    	n_img++;
+
+    	line = NULL;
+    }
+
+	fclose(fp);
+
+	base = head;
+
+	//A base de classificação consiste em 50% da base total
+	for(i = 0; i < n_img/2; i++)
+		base = base->next;
+
+	printf("Números carregados, extraindo atributos das imagens...\n");
+
+	extract_attr_signature(head, n_img, head->height, head->width);
+
+	printf("Extração concluída, executando treinamento dos classificadores de padrão...\n");
+
+	cv::Ptr<cv::ml::SVM> svm = svm_training(head, n_img/2, head->height, head->width); //Treinando somente com 50% da base
+
+	printf("Treinamento concluído, executando testes...\n");
+
+	classify(svm, base, n_img/2, head->height, head->width); // Classificando usando os outros 50%
+
+	printf("\nTestes concluídos. O resultado foi de %d acertos e %d erros\n", acertos, erros);
+	printf("Acurácia");
+	printf("Matriz de confusão");
+}
+
+void extract_attr_signature(Tbinimg *head, int n_img, int imgx, int imgy){
+	int s;
+
+	for(s = 0; s < n_img; s++){
+		int px, py, i, j, z;
+		int count = 0;
+		int oldcount = 0;
+
+		//Algoritmo seguidor de fronteira de Moore
+		for(px = 0; px < imgx; px++)
+			for(py = 0; py < imgy; py++)
+				if(head->data[imgy*py + px] > 0)
+					break;
+			
+		count++;
+		i = py;
+		j = px;
+
+		while(oldcount != count && (i != py || j != px)){
+			oldcount = count;
+
+			if(head->data[imgy*(i-1) + j] > 0){
+				i--; count++; continue;
+			}
+			if(head->data[imgy*(i-1) + j+1] > 0){
+				i--; j++; count++; continue;
+			}
+			if(head->data[imgy*i + j+1] > 0){
+				j++; count++; continue;
+			}
+			if(head->data[imgy*(i+1) + j + 1] > 0){
+				i++; j++; count++; continue;
+			}
+			if(head->data[imgy*(i+1) + j] > 0){
+				i++; count++; continue;
+			}
+			if(head->data[imgy*(i+1) + j - 1] > 0){
+				i++; j--; count++; continue;
+			}
+			if(head->data[imgy*i + j - 1] > 0){
+				j--; count++; continue;
+			}
+			if(head->data[imgy*(i-1) + j - 1] > 0){
+				i--; j--; count++; continue;
+			}
+		}
+
+		head->borders = (TPoint*) malloc(count * sizeof(TPoint));
+		head->borders_size = count;
+
+		i = py;
+		j = px;
+
+		for(z = 0; z < count; z++){
+			if(head->data[imgy*(i-1) + j] > 0){
+				head->borders[z].x = j;
+				head->borders[z].y = i-1;
+				continue;
+			}
+			if(head->data[imgy*(i-1) + j+1] > 0){
+				head->borders[z].x = j+1;
+				head->borders[z].y = i-1;
+				continue;
+			}
+			if(head->data[imgy*i + j+1] > 0){
+				head->borders[z].x = j+1;
+				head->borders[z].y = i;
+				continue;
+			}
+			if(head->data[imgy*(i+1) + j + 1] > 0){
+				head->borders[z].x = j+1;
+				head->borders[z].y = i+1;
+				continue;
+			}
+			if(head->data[imgy*(i+1) + j] > 0){
+				head->borders[z].x = j;
+				head->borders[z].y = i+1;
+				continue;
+			}
+			if(head->data[imgy*(i+1) + j - 1] > 0){
+				head->borders[z].x = j-1;
+				head->borders[z].y = i+1;
+				continue;
+			}
+			if(head->data[imgy*i + j - 1] > 0){
+				head->borders[z].x = j-1;
+				head->borders[z].y = i;
+				continue;
+			}
+			if(head->data[imgy*(i-1) + j - 1] > 0){
+				head->borders[z].x = j-1;
+				head->borders[z].y = i-1;
+				continue;
+			}
+		}
+
+		//Iniciando algoritmo de obtenção de assinatura
+		head->signature = (unsigned int*) malloc(count*sizeof(int));
+
+		for(z = 0; z < count; z++){
+			head->signature[z] = (unsigned int)trunc(sqrt(pow(head->borders[z].x, 2) + pow(head->borders[z].y, 2)));
+		}
+
+		head = head->next;
+	}
+}	
+
+void classify(cv::Ptr<cv::ml::SVM> svm, Tbinimg *head, int n_img, int imgx, int imgy){
+	cv::Mat query; // input, 1channel, 1 row (apply reshape(1,1) if nessecary)
+	cv::Mat res;   // output
+	svm->predict(query, res);
+}
+
+cv::Ptr<cv::ml::SVM> svm_training(Tbinimg *head, int n_img, int imgx, int imgy){
+	unsigned char labelsarray[n_img];
+	//unsigned char *dataarray = (unsigned char*) malloc(n_img*imgx*imgy);
+	cv::Mat trainData, labels;
+	Tbinimg *temp = head;
+	int i;
+
+	for(i = 0; i < n_img; i++){
+		labelsarray[i] = head->val;
+		//memcpy(dataarray + (i*imgx*imgy), head->data, imgx*imgy);
+		temp = temp->next;
+	}
+
+	trainData = cv::Mat(head->borders_size, 1, CV_16UC1, head->signature);
+	labels = cv::Mat(n_img, 1, CV_8UC1, labelsarray);
+
+	cv::Ptr<cv::ml::SVM> svm = cv::ml::SVM::create();
+	svm->setType(cv::ml::SVM::C_SVC);
+	svm->setKernel(cv::ml::SVM::POLY);
+	svm->setGamma(3);
+
+	//cv::Ptr<cv::ml::TrainData> tData = cv::ml::TrainData::create(trainData, cv::ml::SampleTypes::ROW_SAMPLE, labels);
+
+	svm->train(trainData, cv::ml::ROW_SAMPLE, labels);
+
+	//free(dataarray);
 }
 
 void menu_reggrowth(char *filename){

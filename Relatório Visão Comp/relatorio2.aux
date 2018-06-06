@@ -1,0 +1,68 @@
+\relax 
+\providecommand\hyper@newdestlabel[2]{}
+\providecommand\HyperFirstAtBeginDocument{\AtBeginDocument}
+\HyperFirstAtBeginDocument{\ifx\hyper@anchor\@undefined
+\global\let\oldcontentsline\contentsline
+\gdef\contentsline#1#2#3#4{\oldcontentsline{#1}{#2}{#3}}
+\global\let\oldnewlabel\newlabel
+\gdef\newlabel#1#2{\newlabelxx{#1}#2}
+\gdef\newlabelxx#1#2#3#4#5#6{\oldnewlabel{#1}{{#2}{#3}}}
+\AtEndDocument{\ifx\hyper@anchor\@undefined
+\let\contentsline\oldcontentsline
+\let\newlabel\oldnewlabel
+\fi}
+\fi}
+\global\let\hyper@last\relax 
+\gdef\HyperFirstAtBeginDocument#1{#1}
+\providecommand\HyField@AuxAddToFields[1]{}
+\providecommand\HyField@AuxAddToCoFields[2]{}
+\catcode `"\active 
+\select@language{brazil}
+\@writefile{toc}{\select@language{brazil}}
+\@writefile{lof}{\select@language{brazil}}
+\@writefile{lot}{\select@language{brazil}}
+\@writefile{toc}{\contentsline {section}{\numberline {1}Introdu\IeC {\c c}\IeC {\~a}o}{2}{section.1}}
+\@writefile{toc}{\contentsline {subparagraph}{\normalfont  Este relat\IeC {\'o}rio tem como objetivo principal relatar os resultados dos testes realizados com algoritmos muito utilizados no processo de segmenta\IeC {\c c}\IeC {\~a}o de imagens. A seguir, est\IeC {\~a}o listados os algoritmos que ser\IeC {\~a}o abordados nesse documento:}{2}{section*.2}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Testes com Limiariza\IeC {\c c}\IeC {\~a}o Local}{2}{section.2}}
+\@writefile{toc}{\contentsline {subparagraph}{\normalfont  Nessa se\IeC {\c c}\IeC {\~a}o, abordaremos o processo de limiariza\IeC {\c c}\IeC {\~a}o local de uma imagem, e compar\IeC {\'a}-la com a limiariza\IeC {\c c}\IeC {\~a}o global.}{2}{section*.3}}
+\@writefile{toc}{\contentsline {subparagraph}{\normalfont  Na implementa\IeC {\c c}\IeC {\~a}o feita em C, A limiariza\IeC {\c c}\IeC {\~a}o local pode ser feita carregando uma imagem (op\IeC {\c c}\IeC {\~a}o 0 ou 1), depois selecionando a op\IeC {\c c}\IeC {\~a}o de Limiariza\IeC {\c c}\IeC {\~a}o (op\IeC {\c c}\IeC {\~a}o 8). No pr\IeC {\'o}ximo menu que aparecer, escolher a op\IeC {\c c}\IeC {\~a}o 'local' (op\IeC {\c c}\IeC {\~a}o 1).}{2}{section*.4}}
+\newlabel{fig:Antes do filtro}{{1(a)}{2}{Subfigure 1(a)}{subfigure.1.1}{}}
+\newlabel{sub@fig:Antes do filtro}{{(a)}{2}{Subfigure 1(a)\relax }{subfigure.1.1}{}}
+\newlabel{fig:Ap\IeC {\'o}s limiariza\IeC {\c c}\IeC {\~a}o global}{{1(b)}{2}{Subfigure 1(b)}{subfigure.1.2}{}}
+\newlabel{sub@fig:Ap\IeC {\'o}s limiariza\IeC {\c c}\IeC {\~a}o global}{{(b)}{2}{Subfigure 1(b)\relax }{subfigure.1.2}{}}
+\newlabel{fig:Ap\IeC {\'o}s limiariza\IeC {\c c}\IeC {\~a}o local}{{1(c)}{2}{Subfigure 1(c)}{subfigure.1.3}{}}
+\newlabel{sub@fig:Ap\IeC {\'o}s limiariza\IeC {\c c}\IeC {\~a}o local}{{(c)}{2}{Subfigure 1(c)\relax }{subfigure.1.3}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Aplica\IeC {\c c}\IeC {\~a}o das limiariza\IeC {\c c}\IeC {\~o}es local e global}}{2}{figure.1}}
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(a)}{\ignorespaces {Imagem original}}}{2}{figure.1}}
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(b)}{\ignorespaces {Ap\IeC {\'o}s limiariza\IeC {\c c}\IeC {\~a}o global}}}{2}{figure.1}}
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(c)}{\ignorespaces {Ap\IeC {\'o}s limiariza\IeC {\c c}\IeC {\~a}o local}}}{2}{figure.1}}
+\newlabel{fig:Resultado 1}{{1}{2}{Aplicação das limiarizações local e global}{figure.1}{}}
+\@writefile{toc}{\contentsline {subparagraph}{\normalfont  A limiariza\IeC {\c c}\IeC {\~a}o local \IeC {\'e} uma opera\IeC {\c c}\IeC {\~a}o de vizinhan\IeC {\c c}a que consiste em determinar se um pixel faz parte de um objeto ou do fundo, dependendo dos valores de sua vizinhan\IeC {\c c}a local, em que essa vizinhan\IeC {\c c}a pode ser uma janela 3x3, 5x5 etc, o que diferencia-se da limiariza\IeC {\c c}\IeC {\~a}o global, em que cada pixel \IeC {\'e} comparado com um ou mais limiares globais para alcan\IeC {\c c}ar o mesmo objetivo. Em ambas os processos, usou-se um limiar de 128 e, na limiariza\IeC {\c c}\IeC {\~a}o local, usou-se uma janela 3x3 com um algoritmo simples que tira a m\IeC {\'e}dia da soma entre o maior e o menor valor de pixel e comparando com o limiar. }{3}{figure.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Crescimento de regi\IeC {\~a}o}{3}{section.3}}
+\@writefile{toc}{\contentsline {subparagraph}{\normalfont  O algoritmo de crescimento de regi\IeC {\~a}o consiste em lan\IeC {\c c}ar uma semente em uma regi\IeC {\~a}o da imagem, para que ela cres\IeC {\c c}a por cima de pixels semelhantes ao pixel da semente inicial, at\IeC {\'e} cobrir toda uma regi\IeC {\~a}o de pixels similares, segmentando uma regi\IeC {\~a}o da imagem.}{3}{section*.6}}
+\@writefile{toc}{\contentsline {subparagraph}{\normalfont  Na aplica\IeC {\c c}\IeC {\~a}o, carregue uma imagem (op\IeC {\c c}\IeC {\~a}o 0 ou 1), selecione a op\IeC {\c c}\IeC {\~a}o 'Crescimento de regi\IeC {\~a}o' (op\IeC {\c c}\IeC {\~a}o a) e depois informe a localiza\IeC {\c c}\IeC {\~a}o da semente que ir\IeC {\'a} crescer e delimitar uma regi\IeC {\~a}o. }{3}{section*.7}}
+\newlabel{fig:Antes do filtro}{{2(a)}{4}{Subfigure 2(a)}{subfigure.2.1}{}}
+\newlabel{sub@fig:Antes do filtro}{{(a)}{4}{Subfigure 2(a)\relax }{subfigure.2.1}{}}
+\newlabel{fig:Depois do filtro}{{2(b)}{4}{Subfigure 2(b)}{subfigure.2.2}{}}
+\newlabel{sub@fig:Depois do filtro}{{(b)}{4}{Subfigure 2(b)\relax }{subfigure.2.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Resultado do crescimento da semente dentro do c\IeC {\'\i }rculo}}{4}{figure.2}}
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(a)}{\ignorespaces {Imagem original}}}{4}{figure.2}}
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(b)}{\ignorespaces {Regi\IeC {\~a}o segmentada em preto}}}{4}{figure.2}}
+\newlabel{fig:Resultado 1}{{2}{4}{Resultado do crescimento da semente dentro do círculo}{figure.2}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Transformada de Hough}{4}{section.4}}
+\@writefile{toc}{\contentsline {subparagraph}{\normalfont  A transformada de Hough \IeC {\'e} uma t\IeC {\'e}cnica de extra\IeC {\c c}\IeC {\~a}o de atributos usada em processamento de imagens. O prop\IeC {\'o}sito da t\IeC {\'e}cnica \IeC {\'e} encontrar inst\IeC {\^a}ncias de objetos dentro de uma certa classe de formatos atrav\IeC {\'e}s de um mecanismo de 'voto'. Atraves desse mecanismo, \IeC {\'e} gerado um vetor acumulador, em que \IeC {\'e} poss\IeC {\'\i }vel detectar poss\IeC {\'\i }veis inst\IeC {\^a}ncias do objeto na imagem.}{4}{section*.8}}
+\@writefile{toc}{\contentsline {subparagraph}{\normalfont  Na aplica\IeC {\c c}\IeC {\~a}o, \IeC {\'e} poss\IeC {\'\i }vel verificar o exemplo abaixo carregando a imagem shapes.png (op\IeC {\c c}\IeC {\~a}o 1), e selecionando a op\IeC {\c c}\IeC {\~a}o 'Transformada de Hough' (op\IeC {\c c}\IeC {\~a}o b)}{4}{section*.9}}
+\bibstyle{unsrt}
+\bibdata{bibliografia}
+\newlabel{fig:Antes do filtro}{{3(a)}{5}{Subfigure 3(a)}{subfigure.3.1}{}}
+\newlabel{sub@fig:Antes do filtro}{{(a)}{5}{Subfigure 3(a)\relax }{subfigure.3.1}{}}
+\newlabel{fig:Depois do filtro}{{3(b)}{5}{Subfigure 3(b)}{subfigure.3.2}{}}
+\newlabel{sub@fig:Depois do filtro}{{(b)}{5}{Subfigure 3(b)\relax }{subfigure.3.2}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {3}{\ignorespaces Resultado da transformada de Hough}}{5}{figure.3}}
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(a)}{\ignorespaces {Imagem}}}{5}{figure.3}}
+\@writefile{lof}{\contentsline {subfigure}{\numberline{(b)}{\ignorespaces {Vetor Acumulador}}}{5}{figure.3}}
+\newlabel{fig:Resultado 1}{{3}{5}{Resultado da transformada de Hough}{figure.3}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {5}Resumo Geral}{5}{section.5}}
+\@writefile{toc}{\contentsline {subparagraph}{\normalfont  Esse documento faz um breve relat\IeC {\'o}rio dos resultados obtidos pela implementa\IeC {\c c}\IeC {\~a}o em C dos processos de segmenta\IeC {\c c}\IeC {\~a}o de imagem abordados por ele. No decorrer do relat\IeC {\'o}rio, \IeC {\'e} poss\IeC {\'\i }vel notar que os resultados obtidos est\IeC {\~a}o dentro do esperado para os testes realizados, vinculando teoria e pr\IeC {\'a}tica como eram os objetivos do documento.}{5}{section*.10}}
+\@writefile{toc}{\contentsline {subparagraph}{\normalfont  O documento ensina, tamb\IeC {\'e}m, como usar a implementa\IeC {\c c}\IeC {\~a}o feita em C para verificar os testes que foram feitos e comparar com os resultados obtidos.}{5}{section*.11}}
+\@writefile{toc}{\contentsline {section}{\numberline {6}Refer\IeC {\^e}ncias}{5}{section.6}}
